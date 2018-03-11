@@ -13,7 +13,19 @@ What's supported:
 - Terrain ```*.ter Files``` (without Textures, so far just height information)
 
 # How to install
-1. Simply put the ```SWBF2Import``` Folder into your ```Assets/``` Directory
+1. Simply put the ```SWBF2Import``` folder into your ```Assets/``` directory
 2. You should see a ```SWBF2``` Menu Entry on the top:
+<br /><br />
+![](Screenshots/menu.jpg)
+<br /><br />
+
+# How to use
+1. In your ```Assets/``` directory, create a new directory ```Resources/Textures```
+2. Put all Textures (```*.tga``` Files) needed into that directory
+3. Click on ```SWBF2 --> Open World``` to browse for a world File (e.g. BF2_ModTools/assets/worlds/GEO/world1/geo1.wld)
+4. Optional: Specify alternate msh directorys to search for (additional to the local world msh directory)
+5. Select if you wish to the TerrainName
+6. Select the Layers you wish to import
+7. Optional: Specify a Material (Shader) that should be used for all imported models. Will use Standard shader if not set
 <br /><br />
 ![](Screenshots/menu.jpg)
