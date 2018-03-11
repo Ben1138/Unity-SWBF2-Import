@@ -28,4 +28,4 @@ What's supported:
 6. Select the Layers you wish to import
 7. Optional: Specify a Material (Shader) that should be used for all imported models. Will use Standard shader if not set
 <br /><br />
-![](Screenshots/menu.jpg)
+![](Screenshots/importer.jpg)
