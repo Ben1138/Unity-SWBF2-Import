@@ -27,5 +27,6 @@ What's supported:
 5. Select if you wish to import the Terrain
 6. Select the Layers you wish to import (The number in parentheses indicates the amount of objects that layer contains)
 7. Optional: Specify a Material (Shader) that should be used for all imported models. Will use Standard shader if not set
+8. Hit ```Import```. This may take a while, so be patient.
 <br /><br />
 ![](Screenshots/importer.jpg)
