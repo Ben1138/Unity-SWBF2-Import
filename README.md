@@ -24,7 +24,7 @@ What's supported:
 2. Put all Textures (```*.tga``` Files) needed into that directory
 3. Click on ```SWBF2 --> Open World``` to browse for a world File (e.g. BF2_ModTools/assets/worlds/GEO/world1/geo1.wld)
 4. Optional: Specify alternate msh directorys to search for (additional to the local world msh directory)
-5. Select if you wish to the TerrainName
+5. Select if you wish to import the Terrain
 6. Select the Layers you wish to import (The number in parentheses indicates the amount of objects that layer contains)
 7. Optional: Specify a Material (Shader) that should be used for all imported models. Will use Standard shader if not set
 <br /><br />
