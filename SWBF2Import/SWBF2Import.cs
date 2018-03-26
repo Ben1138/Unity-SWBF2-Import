@@ -15,8 +15,8 @@ public static class SWBF2Import {
     public static readonly string SHADER = "Standard (Roughness setup)";
     public static readonly string NORMAL_MAP_SUFFIX = "_normal";
     public static readonly bool CREATE_ASSETS = false;
-    public static string AssetPath = Application.dataPath;
 
+    public static string ASSET_PATH = Application.dataPath;
 
     public static Material DEFAULT_MATERIAL = null;
     public static void ImportWLD(WLD world, string[] mshDirs, bool[] layersToImport, bool importTerrain) {
@@ -156,7 +156,7 @@ public static class SWBF2Import {
 
             string fileName = mshFile.Name.Replace(".msh", "");
 
-            if (!Directory.Exists(AssetPath + "/" + MESH_FOLDER) && CREATE_ASSETS)
+            if (!Directory.Exists(ASSET_PATH + "/" + MESH_FOLDER) && CREATE_ASSETS)
                 AssetDatabase.CreateFolder("Assets", MESH_FOLDER);
 
             GameObject rootObj = new GameObject(fileName);
