@@ -15,7 +15,7 @@ public class ImportWorldWindow : EditorWindow {
     private WLD world = null;
 
 
-    [MenuItem("SWBF2/Open World (*.wld)")]
+    [MenuItem("SWBF2/Import World/Import *.wld")]
     private static void Init() {
         ImportWorldWindow window = GetWindow<ImportWorldWindow>();
 
@@ -32,7 +32,6 @@ public class ImportWorldWindow : EditorWindow {
         EditorGUIUtility.labelWidth = 250;
 
         scrollPos = EditorGUILayout.BeginScrollView(scrollPos);
-        EditorGUILayout.BeginVertical(GUILayout.Width(500));
 
         EditorGUILayout.Space();
         EditorGUILayout.Space();
@@ -128,7 +127,6 @@ public class ImportWorldWindow : EditorWindow {
             }
         }
 
-        EditorGUILayout.EndVertical();
         EditorGUILayout.EndScrollView();
     }
 

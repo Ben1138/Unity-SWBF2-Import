@@ -6,7 +6,7 @@ using UnityEditor;
 
 public class SWBF2Menu : ScriptableObject {
 
-    [MenuItem("SWBF2/Import Mesh (*.msh)")]
+    [MenuItem("SWBF2/Import Mesh/Import *.msh", false, 1)]
     public static void ImportMSH() {
         string fileName = EditorUtility.OpenFilePanelWithFilters("Open Mesh File", "", new string[] { "SWBF2 Mesh File", "msh" });
 
