@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
@@ -17,7 +18,8 @@ public static class SWBF2Import {
     public static string AssetPath = Application.dataPath;
 
 
-    public static void ImportWLD(WLD world, string[] mshDirs, bool[] layersToImport, bool importTerrain, Material material=null) {
+    public static Material DEFAULT_MATERIAL = null;
+    public static void ImportWLD(WLD world, string[] mshDirs, bool[] layersToImport, bool importTerrain) {
 
         if (mshDirs == null || mshDirs.Length == 0) {
             Debug.LogError("No msh directorys specified!");
@@ -53,7 +55,7 @@ public static class SWBF2Import {
                     string mshPath = dir + "/" + obj.meshName + ".msh";
 
                     if (File.Exists(mshPath)) {
-                        GameObject msh = ImportMSH(mshPath, material);
+                        GameObject msh = ImportMSH(mshPath);
                         msh.transform.position = Vector2Unity(obj.position);
                         msh.transform.rotation = Quaternion2Unity(obj.rotation);
                         found = true;
@@ -140,7 +142,7 @@ public static class SWBF2Import {
         }
     }
 
-	public static GameObject ImportMSH(string path, Material material=null) {
+	public static GameObject ImportMSH(string path) {
         FileInfo mshFile = new FileInfo(path);
 
         if (mshFile.Exists) {
@@ -245,11 +247,6 @@ public static class SWBF2Import {
 
                             MeshRenderer renderer = SegmObj.AddComponent<MeshRenderer>();
 
-                            if (material != null)
-                                renderer.sharedMaterial = ChangeMaterial(segm.Material, new Material(material));
-                            else
-                                renderer.sharedMaterial = Material2Unity(segm.Material);
-                        }
                     }
                 }
             }

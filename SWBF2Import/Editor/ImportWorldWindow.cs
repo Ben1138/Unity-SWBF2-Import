@@ -13,7 +13,6 @@ public class ImportWorldWindow : EditorWindow {
     private bool importTerrain = false;
     private bool[] layerSelected = new bool[0];
     private WLD world = null;
-    private Material objMaterial;
 
 
     [MenuItem("SWBF2/Open World (*.wld)")]
@@ -98,9 +97,6 @@ public class ImportWorldWindow : EditorWindow {
                 );
             }
 
-            // Set Material for all Object to import
-            EditorGUILayout.Space();
-            objMaterial = EditorGUILayout.ObjectField("Material", objMaterial, typeof(Material), false) as Material;
             EditorGUILayout.Space();
 
             //Import Button
@@ -111,9 +107,6 @@ public class ImportWorldWindow : EditorWindow {
                     EditorUtility.DisplayDialog("Nothing to import", "Nothing selected to import!", "OK");
                     goOn = false;
                 }
-
-                if (goOn && objMaterial == null)
-                    goOn = EditorUtility.DisplayDialog("Missing Material", "No Material specified! Standard Shader will be used. Continue?", "Yes", "No");
 
                 if (goOn) {
                     string[] mshDirs = new string[altMshDirs.Length + 4];
@@ -127,7 +120,7 @@ public class ImportWorldWindow : EditorWindow {
                         mshDirs[i] = altMshDirs[i - 4];
                     }
 
-                    SWBF2Import.ImportWLD(world, mshDirs, layerSelected, importTerrain, objMaterial);
+                    SWBF2Import.ImportWLD(world, mshDirs, layerSelected, importTerrain);
 
                     //foreach (string s in LibSWBF2.Log.GetAllLines(LibSWBF2.LogType.Info))
                     //Debug.Log(s);
