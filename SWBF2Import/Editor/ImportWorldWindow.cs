@@ -52,10 +52,8 @@ public class ImportWorldWindow : EditorWindow {
                 }
 
                 layerSelected = new bool[world.Layers.Count];
-
-                //for (int i = 0; i < layerSelected.Length; i++)
-                //layerSelected[i] = true;
-            } else {
+            } 
+            else {
                 EditorUtility.DisplayDialog("Not Found", worldFile.FullName + " could not be found!", "ok");
             }
         }
@@ -67,6 +65,7 @@ public class ImportWorldWindow : EditorWindow {
         if (worldFile != null && worldFile.Exists)
             path = worldFile.FullName;
 
+        EditorGUILayout.LabelField("Specify alternate MSH Directorys (Optional)", EditorStyles.boldLabel);
         for (int i = 0; i < altMshDirs.Length; i++) {
             altMshDirs[i] = EditorGUILayout.TextField("Alternate MSH Directory", altMshDirs[i]);
         }
@@ -79,6 +78,8 @@ public class ImportWorldWindow : EditorWindow {
             EditorGUILayout.Space();
 
             //Display Terrain Info
+            EditorGUILayout.LabelField("Terrain Information", EditorStyles.boldLabel);
+
             if (world.Terrain != null) {
                 EditorGUILayout.LabelField("Terrain Version", world.Terrain.Version.ToString());
                 EditorGUILayout.LabelField("Terrain Size", world.Terrain.GridSize + "x" + world.Terrain.GridSize);
@@ -87,8 +88,13 @@ public class ImportWorldWindow : EditorWindow {
                 importTerrain = EditorGUILayout.Toggle("Import Terrain", importTerrain);
                 EditorGUILayout.Space();
             }
+            else {
+                EditorGUILayout.LabelField("No Terrain available!");
+            }
 
             // Display Layer Selection
+            EditorGUILayout.LabelField("Layers to import", EditorStyles.boldLabel);
+
             for (int i = 0; i < world.Layers.Count; i++) {
                 layerSelected[i] = EditorGUILayout.Toggle(
                     world.Layers[i].Name + "  (" + world.Layers[i].WorldObjects.Count + ")",
