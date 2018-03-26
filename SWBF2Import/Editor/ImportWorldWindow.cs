@@ -26,6 +26,8 @@ public class ImportWorldWindow : EditorWindow {
             window.altMshDirs[1] = @"D:\BF2_ModTools\data\Common\mshs\PC";
 
         window.Show();
+
+        MshImportOptionsWindow.Init();
     }
 
     private void OnGUI() {

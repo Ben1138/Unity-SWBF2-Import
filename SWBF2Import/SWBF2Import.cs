@@ -17,8 +17,17 @@ public static class SWBF2Import {
     public static readonly bool CREATE_ASSETS = false;
 
     public static string ASSET_PATH = Application.dataPath;
+    public static MTYP[] LEGAL_TYPES = new MTYP[] {
+        MTYP.Static
+    };
 
+    public static ModelTag[] LEGAL_MODELS = new ModelTag[] {
+        ModelTag.Collision,
+        ModelTag.Common
+    };
     public static Material DEFAULT_MATERIAL = null;
+
+
     public static void ImportWLD(WLD world, string[] mshDirs, bool[] layersToImport, bool importTerrain) {
 
         if (mshDirs == null || mshDirs.Length == 0) {
@@ -161,12 +170,14 @@ public static class SWBF2Import {
 
             GameObject rootObj = new GameObject(fileName);
 
-
             foreach (MODL mdl in msh.Models) {
-                if (mdl.Type != MTYP.Static)
+                if (!Array.Exists(LEGAL_TYPES, t => t == mdl.Type))
                     continue;
 
-                if (mdl.Tag == ModelTag.Lowrez)
+                if (!Array.Exists(LEGAL_MODELS, t => t == mdl.Tag))
+                    continue;
+
+                if (mdl.Geometry == null || mdl.Geometry.Segments.Count == 0)
                     continue;
 
                 GameObject modelObj = new GameObject(mdl.Name);
@@ -175,78 +186,107 @@ public static class SWBF2Import {
                 modelObj.transform.rotation = Quaternion.Euler(Vector2Unity(mdl.Rotation));
                 modelObj.transform.localScale = Vector2Unity(mdl.Scale);
 
-                if (mdl.Geometry != null) {
-                    for (int si = 0; si < mdl.Geometry.Segments.Length; si++) {
-                        SEGM segm = mdl.Geometry.Segments[si];
+                List<Vector3> vertices = new List<Vector3>();
+                List<Vector3> normals = new List<Vector3>();
+                List<Vector2> uvs = new List<Vector2>();
+                List<Material> materials = new List<Material>();
 
-                        List<Vector3> vertices = new List<Vector3>();
-                        List<Vector3> normals = new List<Vector3>();
-                        List<Vector2> uvs = new List<Vector2>();
-                        List<int> triangles = new List<int>();
+                //each segment contains its own list of triangles
+                List<int>[] triangles = new List<int>[mdl.Geometry.Segments.Count];
 
-                        foreach (Vertex vert in segm.Vertices) {
-                            vertices.Add(new Vector3(-vert.position.X, vert.position.Y, vert.position.Z));
-                            normals.Add(new Vector3(vert.normal.X, vert.normal.Y, vert.normal.Z));
-                            uvs.Add(new Vector2(vert.uvCoordinate.X, vert.uvCoordinate.Y));
-                        }
+                //since each Segment acts as its own object (vertices, normals, triangles...) and we want to
+                //merge all vertices into one array (as Unity expects it) but preserve our Segment Materials,
+                //we have to set a sub mesh for each Segment, containing a list of vertex indices (of the now global vertex list).
+                //so we have to store a offset
+                int vertexOffset = 0;
 
-                        for (int pi = 0; pi < segm.polygons.Count; pi++) {
-                            Polygon poly = segm.polygons[pi];
+                Mesh mesh = new Mesh();
+                mesh.name = mdl.Name;
+                mesh.subMeshCount = mdl.Geometry.Segments.Count;
 
-                            int triCount = 0;
-                            List<int> tris = new List<int>();
+                Debug.Log("Sub Mesh Count set to: " + mesh.subMeshCount);
 
-                            //in MSH, polygons are defined as triangle strips.
-                            //since unity expects just triangles, we have to strip them ourselfs
-                            for (int vi = 0; vi < poly.VertexIndices.Count; vi++) {
-                                if (triCount == 3) {
-                                    vi -= 2;
-                                    triCount = 0;
-                                }
+                for (int si = 0; si < mdl.Geometry.Segments.Count; si++) {
+                    Debug.Log("Segment No: " + si);
+                    SEGM segm = mdl.Geometry.Segments[si];
 
-                                tris.Add(poly.VertexIndices[vi]);
-                                triCount++;
+                    triangles[si] = new List<int>();
+
+                    foreach (Vertex vert in segm.Vertices) {
+                        vertices.Add(new Vector3(-vert.position.X, vert.position.Y, vert.position.Z));
+                        normals.Add(new Vector3(vert.normal.X, vert.normal.Y, vert.normal.Z));
+                        uvs.Add(new Vector2(vert.uvCoordinate.X, vert.uvCoordinate.Y));
+                    }
+
+                    for (int pi = 0; pi < segm.Polygons.Length; pi++) {
+                        Polygon poly = segm.Polygons[pi];
+
+                        int triCount = 0;
+                        List<int> tris = new List<int>();
+
+                        //in MSH, polygons are defined as triangle strips.
+                        //since unity expects just triangles, we have to strip them ourselfs
+                        for (int vi = 0; vi < poly.VertexIndices.Count; vi++) {
+                            if (triCount == 3) {
+                                vi -= 2;
+                                triCount = 0;
                             }
 
-                            //triangles are listed CW CCW CW CCW...
-                            bool flip = true;
-                            for (int j = 0; j < tris.Count; j += 3) {
-                                if (flip) {
-                                    int tmp = tris[j];
-                                    tris[j] = tris[j + 2];
-                                    tris[j + 2] = tmp;
-                                }
+                            tris.Add(poly.VertexIndices[vi] + vertexOffset);
+                            triCount++;
+                        }
 
-                                flip = !flip;
+                        //triangles are listed CW CCW CW CCW...
+                        bool flip = true;
+                        for (int j = 0; j < tris.Count; j += 3) {
+                            if (flip) {
+                                int tmp = tris[j];
+                                tris[j] = tris[j + 2];
+                                tris[j + 2] = tmp;
                             }
 
-                            triangles.AddRange(tris);
+                            flip = !flip;
                         }
 
-                        GameObject SegmObj = new GameObject("SEGM" + si);
-                        SegmObj.transform.SetParent(modelObj.transform);
+                        triangles[si].AddRange(tris);
+                    }
 
-                        Mesh mesh = new Mesh();
-                        mesh.name = mdl.Name + "_segm" + si;
-                        mesh.vertices = vertices.ToArray();
-                        mesh.normals = normals.ToArray();
-                        mesh.uv = uvs.ToArray();
+                    //Add Segment Material to overall Material List
+                    if (DEFAULT_MATERIAL != null)
+                        materials.Add(ChangeMaterial(segm.Material, new Material(DEFAULT_MATERIAL)));
+                    else
+                        materials.Add(Material2Unity(segm.Material));
 
-                        mesh.triangles = triangles.ToArray();
+                    //don't forget to increase our vertex offset
+                    vertexOffset += segm.Vertices.Length;
+                }
 
+                mesh.vertices = vertices.ToArray();
+                mesh.normals = normals.ToArray();
+                mesh.uv = uvs.ToArray();
 
-                        //we're just interested in common and collision geometry
-                        //discard the rest
-                        if (mdl.Tag == ModelTag.Collision) {
-                            MeshCollider collider = SegmObj.AddComponent<MeshCollider>();
-                            collider.sharedMesh = mesh;
-                        }
-                        else if (mdl.Tag == ModelTag.Common) {
-                            MeshFilter filter = SegmObj.AddComponent<MeshFilter>();
-                            filter.mesh = mesh;
+                //set triangles AFTER vertices to avoid out of bounds errors
+                for (int si = 0; si < triangles.Length; si++) {
+                    mesh.SetTriangles(triangles[si], si);
+                }
 
-                            MeshRenderer renderer = SegmObj.AddComponent<MeshRenderer>();
+                //Interpret Common and Lowrez as Geometry
+                if (mdl.Tag == ModelTag.Common || mdl.Tag == ModelTag.Lowrez) {
+                    MeshFilter filter = modelObj.AddComponent<MeshFilter>();
+                    filter.mesh = mesh;
 
+                    MeshRenderer renderer = modelObj.AddComponent<MeshRenderer>();
+                    renderer.materials = materials.ToArray();
+                }
+
+                //and everything else as collision / trigger
+                else {
+                    MeshCollider collider = modelObj.AddComponent<MeshCollider>();
+                    collider.sharedMesh = mesh;
+
+                    if (mdl.Tag != ModelTag.Collision && mdl.Tag != ModelTag.VehicleCollision) {
+                        collider.convex = true;
+                        collider.isTrigger = true;
                     }
                 }
             }
