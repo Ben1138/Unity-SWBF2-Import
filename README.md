@@ -1,7 +1,7 @@
 # Unity SWBF2 Import
 
 Import Maps from the Star Wars Battlefront II (2005) Mod Tools into Unity.<br />
-This Importer is based on the [LibSWBF2](https://github.com/Ben1138/LibSWBF2) Library.
+This Importer is currently based on the [LibSWBF2-CSharp](https://github.com/Ben1138/LibSWBF2-CSharp) Library.
 <br /><br />
 ![](Screenshots/unity2.jpg)
 ![](Screenshots/unity3.jpg)
