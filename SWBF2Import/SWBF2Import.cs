@@ -13,7 +13,7 @@ using LibSWBF2.WLD.Types;
 public static class SWBF2Import {
     public static readonly string MESH_FOLDER = "Meshes";
     public static readonly string SHADER = "Standard (Roughness setup)";
-    public static readonly string NORMAL_MAP_SUFFIX = "_normal";
+    public static readonly string NORMAL_MAP_SUFFIX = "_bump"; //It is normally bump map, You have to fix to normal map in unity. Not 100% accurate. You should change it back to "_normal" if you use custom normals.
     public static readonly bool CREATE_ASSETS = false;
 
     public static string ASSET_PATH = Application.dataPath;
