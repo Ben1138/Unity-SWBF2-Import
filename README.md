@@ -20,7 +20,7 @@ What's supported:
 <br /><br />
 
 # How to use
-1. Click on ```SWBF2 --> Imprt World --> Improt *.wld```. This should open two windows: One for importing the world and one for adjusting options for mesh import.
+1. Click on ```SWBF2 --> Import World --> Import *.wld```. This should open two windows: One for importing the world and one for adjusting options for mesh import.
 2. Click on ```Open *.wld File``` to browse for a world File (e.g. BF2_ModTools/assets/worlds/GEO/world1/geo1.wld)
 3. Optional: Specify alternate msh directorys to search for (additional to the local world msh directory). This e.g. applies for health droids, command posts, etc.
 4. Select if you wish to import the Terrain
