@@ -14,7 +14,7 @@ public static class SWBF2Import {
     public static string MODELS_FOLDER = "/Models";
     public static string TEXTURES_FOLDER = "/Textures";
     //public static string NORMAL_MAP_SUFFIX = "_bump"; //It is normally bump map, You have to fix to normal map in unity. Not 100% accurate. You should change it back to "_normal" if you use custom normals.
-    public static bool CREATE_ASSETS = true;
+    public static bool CREATE_ASSETS = false;
     //public static bool CREATE_MESH_ASSETS = false;
     public static bool IMPORT_TEXTURES = true;
 
