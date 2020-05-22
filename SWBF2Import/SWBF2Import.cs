@@ -11,10 +11,12 @@ using LibSWBF2.WLD.Types;
 
 
 public static class SWBF2Import {
-    public static readonly string MESH_FOLDER = "Meshes";
-    public static readonly string SHADER = "Standard (Roughness setup)";
-    public static readonly string NORMAL_MAP_SUFFIX = "_bump"; //It is normally bump map, You have to fix to normal map in unity. Not 100% accurate. You should change it back to "_normal" if you use custom normals.
-    public static readonly bool CREATE_ASSETS = false;
+    public static string MODELS_FOLDER = "/Models";
+    public static string TEXTURES_FOLDER = "/Textures";
+    //public static string NORMAL_MAP_SUFFIX = "_bump"; //It is normally bump map, You have to fix to normal map in unity. Not 100% accurate. You should change it back to "_normal" if you use custom normals.
+    public static bool CREATE_ASSETS = true;
+    //public static bool CREATE_MESH_ASSETS = false;
+    public static bool IMPORT_TEXTURES = true;
 
     public static string ASSET_PATH = Application.dataPath;
     public static MTYP[] LEGAL_TYPES = new MTYP[] {
@@ -25,7 +27,13 @@ public static class SWBF2Import {
         ModelTag.Collision,
         ModelTag.Common
     };
+
     public static Material DEFAULT_MATERIAL = null;
+    public static string DEFAULT_MATERIAL_ALBEDO = "_MainTex";
+    public static string DEFAULT_MATERIAL_NORMAL = "_BumpMap";
+
+    // from msh path (BF2_ModTools) to "Assets/" path
+    private static Dictionary<string, GameObject> PrefabMap = new Dictionary<string, GameObject>();
 
 
     public static void ImportWLD(WLD world, string[] mshDirs, bool[] layersToImport, bool importTerrain) {
@@ -45,29 +53,41 @@ public static class SWBF2Import {
             return;
         }
 
+        PrefabMap.Clear();
+        EditorUtility.DisplayProgressBar("Import world", "Import world", 0.0f);
         for (int i = 0; i < world.Layers.Count; i++) {
             if (!layersToImport[i]) {
-                Debug.Log("Skip Layer[" + i + "]: " + world.Layers[i].Name);
+                //Debug.Log("Skip Layer[" + i + "]: " + world.Layers[i].Name);
                 continue;
             }
 
-            Debug.Log("Layer " + world.Layers[i].Name + " has " + world.Layers[i].WorldObjects.Count + " objects in it");
+            //Debug.Log("Layer " + world.Layers[i].Name + " has " + world.Layers[i].WorldObjects.Count + " objects in it");
             for (int j = 0; j < world.Layers[i].WorldObjects.Count; j++) {
                 WorldObject obj = world.Layers[i].WorldObjects[j];
-
+                
                 bool found = false;
                 foreach (string dir in mshDirs) {
                     if (!Directory.Exists(dir)) {
                         continue;
                     }
-
+                    
                     string mshPath = dir + "/" + obj.meshName + ".msh";
 
                     if (File.Exists(mshPath)) {
-                        GameObject msh = ImportMSH(mshPath);
-                        msh.transform.position = Vector2Unity(obj.position);
-                        msh.transform.rotation = Quaternion2Unity(obj.rotation);
-                        found = true;
+                        EditorUtility.DisplayProgressBar("Import Mesh", "'"+ obj.meshName + ".msh' ("+(j+1)+"/"+ world.Layers[i].WorldObjects.Count + ") in Layer '"+ world.Layers[i].Name + "' ("+(i+1)+"/"+ world.Layers.Count + ")", j / (float)world.Layers[i].WorldObjects.Count);
+                        GameObject msh = ImportMSH(mshPath, mshDirs, true);
+                        if (msh != null)
+                        {
+                            msh.transform.position = Vector2Unity(obj.position);
+                            msh.transform.rotation = Quaternion2Unity(obj.rotation);
+                            msh.name = obj.name;
+                            found = true;
+                            break;
+                        }
+                        else
+                        {
+                            Debug.LogWarning("COULD NOT IMPORT: " + mshPath);
+                        }
                     }
                 }
 
@@ -78,9 +98,10 @@ public static class SWBF2Import {
         }
 
         //Import Terrain
-        if (importTerrain) {
+        if (importTerrain)
+        {
+            EditorUtility.DisplayProgressBar("Import Terrain", "Import Terrain...", 0.9f);
             TER terrain = world.Terrain;
-
             TerrainData data = new TerrainData();
 
             //gridSize
@@ -90,15 +111,17 @@ public static class SWBF2Import {
             data.baseMapResolution = 1024;
             data.SetDetailResolution(1024, 8);
 
-
             float[,] heights = new float[terrain.GridSize, terrain.GridSize];
 
             //save min and max values from imported terrain
             float min = 0;
             float max = 0;
 
-            for (int x = 0; x < heights.GetLength(0); x++) {
-                for (int y = 0; y < heights.GetLength(1); y++) {
+            int xLen = heights.GetLength(0);
+            int yLen = heights.GetLength(1);
+
+            for (int x = 0; x < xLen; x++) {
+                for (int y = 0; y < yLen; y++) {
                     float h = terrain.GetHeight(x, y);
 
                     if (h < min)
@@ -116,13 +139,13 @@ public static class SWBF2Import {
             //range = -3 - (-10) = 7
             float range = max - min;
 
-            Debug.Log("Terrain Min: " + min);
-            Debug.Log("Terrain Max: " + max);
-            Debug.Log("Terrain Range: " + range);
+            //Debug.Log("Terrain Min: " + min);
+            //Debug.Log("Terrain Max: " + max);
+            //Debug.Log("Terrain Range: " + range);
 
             //Normalize given Terrain heights
-            for (int x = 0; x < heights.GetLength(0); x++) {
-                for (int y = 0; y < heights.GetLength(1); y++) {
+            for (int x = 0; x < xLen; x++) {
+                for (int y = 0; y < yLen; y++) {
                     //since unity's terrain range goes from 0 to 1, we have to lift everything up. 
                     //so we're in a range of 0-666 (or whatever)
                     heights[x,y] -= min;
@@ -149,11 +172,26 @@ public static class SWBF2Import {
 
             //we're ignoring the Terrains extend window. just display the whole terrain
         }
+
+        EditorUtility.ClearProgressBar();
     }
 
-	public static GameObject ImportMSH(string path) {
-        FileInfo mshFile = new FileInfo(path);
 
+	public static GameObject ImportMSH(string path, string[] additionalTextureSearchPaths = null, bool bCheckEditorExistence=false)
+    {
+        if (string.IsNullOrEmpty(path))
+        {
+            Debug.LogError("Tried to call ImportMSH with an empty path!");
+            return null;
+        }
+
+        if (PrefabMap.TryGetValue(path, out GameObject prefab))
+        {
+            GameObject instance = PrefabUtility.InstantiatePrefab(prefab) as GameObject;
+            return instance;
+        }
+
+        FileInfo mshFile = new FileInfo(path);
         if (mshFile.Exists) {
             MSH msh;
 
@@ -165,27 +203,61 @@ public static class SWBF2Import {
 
             string fileName = mshFile.Name.Replace(".msh", "");
 
-            if (!Directory.Exists(ASSET_PATH + "/" + MESH_FOLDER) && CREATE_ASSETS)
-                AssetDatabase.CreateFolder("Assets", MESH_FOLDER);
+            if (CREATE_ASSETS)
+            {
+                if (!AssetDatabase.IsValidFolder("Assets" + MODELS_FOLDER))
+                    AssetDatabase.CreateFolder("Assets", MODELS_FOLDER.Remove(0, 1));
+
+                if (!AssetDatabase.IsValidFolder("Assets" + MODELS_FOLDER + "/" + fileName))
+                    AssetDatabase.CreateFolder("Assets" + MODELS_FOLDER, fileName);
+
+                if (!AssetDatabase.IsValidFolder("Assets" + MODELS_FOLDER + "/" + fileName + "/MeshData"))
+                    AssetDatabase.CreateFolder("Assets" + MODELS_FOLDER + "/" + fileName, "MeshData");
+            }
 
             GameObject rootObj = new GameObject(fileName);
 
-            foreach (MODL mdl in msh.Models) {
-                if (!Array.Exists(LEGAL_TYPES, t => t == mdl.Type))
-                    continue;
+            Dictionary<MODL, GameObject> alreadyLoaded = new Dictionary<MODL, GameObject>();
+            GameObject LoadMODL(MODL mdl, GameObject currentParent)
+            {
+                if (mdl == null)
+                {
+                    Debug.LogError("MODL was NULL!");
+                    return null;
+                }
+                if (currentParent == null)
+                {
+                    Debug.LogError("currentParent was NULL!");
+                    return null;
+                }
 
-                if (!Array.Exists(LEGAL_MODELS, t => t == mdl.Tag))
-                    continue;
-
-                if (mdl.Geometry == null || mdl.Geometry.Segments.Count == 0)
-                    continue;
+                if (alreadyLoaded.TryGetValue(mdl, out GameObject obj))
+                    return obj;
 
                 GameObject modelObj = new GameObject(mdl.Name);
-                modelObj.transform.SetParent(rootObj.transform);
+                if (mdl.Parent != null)
+                {
+                    modelObj.transform.SetParent(LoadMODL(mdl.Parent, modelObj).transform);
+                }
+                else
+                {
+                    modelObj.transform.SetParent(currentParent.transform);
+                }
+
                 modelObj.transform.position = Vector2Unity(mdl.Translation);
                 modelObj.transform.rotation = Quaternion.Euler(Vector2Unity(mdl.Rotation));
                 modelObj.transform.localScale = Vector2Unity(mdl.Scale);
 
+                if (!Array.Exists(LEGAL_TYPES, t => t == mdl.Type))
+                    return modelObj;
+
+                if (!Array.Exists(LEGAL_MODELS, t => t == mdl.Tag))
+                    return modelObj;
+
+                if (mdl.Geometry == null || mdl.Geometry.Segments == null)
+                    return modelObj;
+
+                // TODO: use arrays instead of lists
                 List<Vector3> vertices = new List<Vector3>();
                 List<Vector3> normals = new List<Vector3>();
                 List<Vector2> uvs = new List<Vector2>();
@@ -197,17 +269,17 @@ public static class SWBF2Import {
                 //since each Segment acts as its own object (vertices, normals, triangles...) and we want to
                 //merge all vertices into one array (as Unity expects it) but preserve our Segment Materials,
                 //we have to set a sub mesh for each Segment, containing a list of vertex indices (of the now global vertex list).
-                //so we have to store a offset
+                //so we have to store an offset
                 int vertexOffset = 0;
 
                 Mesh mesh = new Mesh();
                 mesh.name = mdl.Name;
                 mesh.subMeshCount = mdl.Geometry.Segments.Count;
 
-                Debug.Log("Sub Mesh Count set to: " + mesh.subMeshCount);
+                //Debug.Log("Sub Mesh Count set to: " + mesh.subMeshCount);
 
                 for (int si = 0; si < mdl.Geometry.Segments.Count; si++) {
-                    Debug.Log("Segment No: " + si);
+                    //Debug.Log("Segment No: " + si);
                     SEGM segm = mdl.Geometry.Segments[si];
 
                     triangles[si] = new List<int>();
@@ -251,11 +323,16 @@ public static class SWBF2Import {
                         triangles[si].AddRange(tris);
                     }
 
+                    string[] textureDirs = new string[1] { mshFile.Directory.FullName };
+                    if (additionalTextureSearchPaths != null)
+                    {
+                        textureDirs = new string[additionalTextureSearchPaths.Length + 1];
+                        additionalTextureSearchPaths[0] = mshFile.Directory.FullName;
+                        Array.Copy(additionalTextureSearchPaths, 0, textureDirs, 1, additionalTextureSearchPaths.Length);
+                    }
+
                     //Add Segment Material to overall Material List
-                    if (DEFAULT_MATERIAL != null)
-                        materials.Add(ChangeMaterial(segm.Material, new Material(DEFAULT_MATERIAL)));
-                    else
-                        materials.Add(Material2Unity(segm.Material));
+                    materials.Add(Material2Unity(textureDirs, fileName, segm.Material, DEFAULT_MATERIAL));
 
                     //don't forget to increase our vertex offset
                     vertexOffset += segm.Vertices.Length;
@@ -277,6 +354,7 @@ public static class SWBF2Import {
 
                     MeshRenderer renderer = modelObj.AddComponent<MeshRenderer>();
                     renderer.materials = materials.ToArray();
+                    renderer.sharedMaterials = materials.ToArray();
                 }
 
                 //and everything else as collision / trigger
@@ -289,10 +367,28 @@ public static class SWBF2Import {
                         collider.isTrigger = true;
                     }
                 }
+
+                if (CREATE_ASSETS)
+                {
+                    AssetDatabase.CreateAsset(mesh, "Assets" + MODELS_FOLDER + "/" + fileName + "/MeshData/" + mesh.name + ".unitymesh");
+                }
+
+                alreadyLoaded.Add(mdl, modelObj);
+                return modelObj;
+            }
+
+            foreach (MODL mdl in msh.Models)
+            {
+                LoadMODL(mdl, rootObj);
             }
 
             if (CREATE_ASSETS)
-                PrefabUtility.CreatePrefab("Assets/Meshes/" + fileName + "/" + fileName + ".prefab", rootObj, ReplacePrefabOptions.ConnectToPrefab);
+            {
+                string prefabPath = "Assets" + MODELS_FOLDER + "/" + fileName + "/" + fileName + ".prefab";
+                GameObject newPrefab = PrefabUtility.SaveAsPrefabAssetAndConnect(rootObj, prefabPath, InteractionMode.AutomatedAction);
+                PrefabUtility.ApplyPrefabInstance(rootObj, InteractionMode.AutomatedAction);
+                PrefabMap.Add(path, newPrefab);
+            }
 
             return rootObj;
         }
@@ -334,66 +430,81 @@ public static class SWBF2Import {
         return new Quaternion(vector.W, vector.Z, vector.Y, vector.X);
     }
 
-    public static Material Material2Unity(MATD from) {
-        Material material = new Material(Shader.Find(SHADER));
-        material.EnableKeyword("_METALLICGLOSSMAP");
-        material.EnableKeyword("_SPECGLOSSMAP");
+    public static Material Material2Unity(string[] textureSearchDirs, string mshObjName, MATD from, Material baseMat, string[] additionalTextureSearchPaths = null) {
+        Material material = new Material(baseMat);
+        //material.EnableKeyword("_METALLICGLOSSMAP");
+        //material.EnableKeyword("_SPECGLOSSMAP");
         material.name = from.Name;
         material.SetColor("_Color", Color2Unity(from.Diffuse));
-        material.SetFloat("_Glossiness", 1.0f);
-        material.SetFloat("_Metallic", 0.0f);
         
+        if (!string.IsNullOrEmpty(from.Texture) && IMPORT_TEXTURES)
+        {
+            Texture2D albedo = ImportTexture(textureSearchDirs, from.Texture);
+            //Texture2D normal = ImportTexture(mshSourceDir, from.Texture);
 
-        if (!string.IsNullOrEmpty(from.Texture)) {
+            if (albedo != null)
+                material.SetTexture(DEFAULT_MATERIAL_ALBEDO, albedo);
 
-            string texPath = "Textures/" + from.Texture.Replace(".tga", "");
-            string normalPath = "Textures/" + (from.Texture + "_normal").Replace(".tga", "");
-            Texture2D texture = Resources.Load(texPath) as Texture2D;
-            Texture2D normal = Resources.Load(normalPath) as Texture2D;
+            //if (normal != null)
+            //{
+            //    material.EnableKeyword("_NORMALMAP");
+            //    material.SetTexture(DEFAULT_MATERIAL_NORMAL, normal);
+            //}
+        }
 
-            if (texture != null) {
-                material.SetTexture("_MainTex", texture);
-            } else {
-                Debug.LogWarning("Could not find " + texPath);
-            }
-
-            if (normal != null) {
-                material.EnableKeyword("_NORMALMAP");
-                material.SetTexture("_BumpMap", normal);
-                //material.SetFloat("_BumpScale", NormalScale);
-            } 
-            else {
-                Debug.LogWarning("Could not find " + normalPath);
-            }
+        if (CREATE_ASSETS)
+        {
+            if (!AssetDatabase.IsValidFolder("Assets" + MODELS_FOLDER + "/" + mshObjName + "/Materials"))
+                AssetDatabase.CreateFolder("Assets" + MODELS_FOLDER + "/" + mshObjName, "Materials");
+            AssetDatabase.CreateAsset(material, "Assets" + MODELS_FOLDER + "/" + mshObjName + "/Materials/" + material.name + ".mat");
         }
 
         return material;
     }
 
-    public static Material ChangeMaterial(MATD from, Material baseMat) {
-        baseMat.name = from.Name;
-
-        if (!string.IsNullOrEmpty(from.Texture)) {
-
-            string texPath = "Textures/" + from.Texture.Replace(".tga", "");
-            string normalPath = "Textures/" + from.Texture.Replace(".tga", "") + NORMAL_MAP_SUFFIX;
-            Texture2D texture = Resources.Load(texPath) as Texture2D;
-            Texture2D normal = Resources.Load(normalPath) as Texture2D;
-
-            if (texture != null) {
-                baseMat.SetTexture("_MainTex", texture);
-            } 
-            else {
-                Debug.LogWarning("Could not find " + texPath);
-            }
-
-            if (normal != null) {
-                baseMat.SetTexture("_BumpMap", normal);
-            } else {
-                Debug.LogWarning("Could not find " + normalPath);
-            }
+    public static Texture2D ImportTexture(string[] textureSearchDirs, string texName)
+    {
+        foreach (string sourceDir in textureSearchDirs)
+        {
+            Texture2D tex = ImportTexture(sourceDir, texName);
+            if (tex != null)
+                return tex;
         }
 
-        return baseMat;
+        Debug.LogWarning("Could not find Texture: " + texName);
+        return null;
+    }
+
+    // sourceDir is absolute windows path, name includes extension (*.tga)
+    public static Texture2D ImportTexture(string sourceDir, string texName)
+    {
+        if (IMPORT_TEXTURES && !AssetDatabase.IsValidFolder("Assets" + TEXTURES_FOLDER))
+            AssetDatabase.CreateFolder("Assets", TEXTURES_FOLDER.Remove(0, 1));
+
+        string texSource = sourceDir + "/" + texName;
+        string texDest = ASSET_PATH + TEXTURES_FOLDER + "/" + texName;
+        if (File.Exists(texSource))
+        {
+            if (!File.Exists(texDest))
+            {
+                try
+                {
+                    File.Copy(texSource, texDest, false);
+                }
+                catch (Exception e)
+                {
+                    Debug.LogError("ERROR: " + e.Message);
+                    return null;
+                }
+            }
+
+            AssetDatabase.ImportAsset("Assets" + TEXTURES_FOLDER + "/" + texName, ImportAssetOptions.Default);
+            return AssetDatabase.LoadAssetAtPath<Texture2D>("Assets" + TEXTURES_FOLDER + "/" + texName);
+        }
+        else
+        {
+            //Debug.LogWarning("Could not find Texture: " + texSource);
+            return null;
+        }
     }
 }

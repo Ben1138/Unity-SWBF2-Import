@@ -20,14 +20,11 @@ What's supported:
 <br /><br />
 
 # How to use
-1. In your ```Assets/``` directory, create a new directory ```Resources/Textures```
-2. Put all Textures (```*.tga``` Files) needed into that directory
-3. Click on ```SWBF2 --> Open World``` to open the Import Window
-4. Click on ```Open *.wld File``` to browse for a world File (e.g. BF2_ModTools/assets/worlds/GEO/world1/geo1.wld)
-5. Optional: Specify alternate msh directorys to search for (additional to the local world msh directory)
-6. Select if you wish to import the Terrain
-7. Select the Layers you wish to import (The number in parentheses indicates the amount of objects that layer contains)
-8. Optional: Specify a Material (Shader) that should be used for all imported models. Will use Standard shader if not set
-9. Hit ```Import```. This may take a while, so be patient (even if it seems unity froze)
+1. Click on ```SWBF2 --> Imprt World --> Improt *.wld```. This should open two windows: One for importing the world and one for adjusting options for mesh import.
+2. Click on ```Open *.wld File``` to browse for a world File (e.g. BF2_ModTools/assets/worlds/GEO/world1/geo1.wld)
+3. Optional: Specify alternate msh directorys to search for (additional to the local world msh directory). This e.g. applies for health droids, command posts, etc.
+4. Select if you wish to import the Terrain
+5. Select the Layers you wish to import (The number in parentheses indicates the amount of objects that layer contains)
+6. Hit ```Import```. This may take a while, so be patient (even if it seems unity froze)
 <br /><br />
 ![](Screenshots/importer.jpg)

@@ -10,6 +10,9 @@ public class SWBF2Menu : ScriptableObject {
     public static void ImportMSH() {
         string fileName = EditorUtility.OpenFilePanelWithFilters("Open Mesh File", "", new string[] { "SWBF2 Mesh File", "msh" });
 
+        if (fileName == null || fileName.Length == 0)
+            return;
+
         FileInfo file = new FileInfo(fileName);
 
         if (file.Exists) {
