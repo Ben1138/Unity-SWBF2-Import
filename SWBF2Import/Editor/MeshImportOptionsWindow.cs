@@ -49,6 +49,9 @@ public class MshImportOptionsWindow : EditorWindow {
 
         MshImportOptionsWindow window = GetWindow<MshImportOptionsWindow>();
         window.Show();
+
+        // try load our default material we ship
+        SWBF2Import.DEFAULT_MATERIAL = AssetDatabase.LoadAssetAtPath<Material>("Assets/SWBF2Import/DefaultImportMaterial.mat");
     }
 
     private void OnGUI() {
@@ -58,6 +61,7 @@ public class MshImportOptionsWindow : EditorWindow {
         EditorGUILayout.Space();
 
         EditorGUILayout.LabelField("Import Mesh Types", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("NOTE: For unchecked models empty GameObjects will be created anyway to not break parentship.");
 
         //Build up Toggle List of availablke Types
         List<MTYP> legalTypesFinal = new List<MTYP>();
@@ -72,8 +76,9 @@ public class MshImportOptionsWindow : EditorWindow {
         EditorGUILayout.Space();
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Import Models", EditorStyles.boldLabel);
+        EditorGUILayout.LabelField("NOTE: For unchecked models empty GameObjects will be created anyway to not break parentship.");
 
-        //Build up Toggle List of availablke Tags
+        //Build up Toggle List of available Tags
         List<ModelTag> legalModelsFinal = new List<ModelTag>();
 
         for (int i = 0; i < legalModels.Length; i++) {
@@ -86,6 +91,30 @@ public class MshImportOptionsWindow : EditorWindow {
         EditorGUILayout.Space();
         EditorGUILayout.LabelField("Base Material", EditorStyles.boldLabel);
         SWBF2Import.DEFAULT_MATERIAL = EditorGUILayout.ObjectField("Material", SWBF2Import.DEFAULT_MATERIAL, typeof(Material), true) as Material;
+        SWBF2Import.DEFAULT_MATERIAL_ALBEDO = EditorGUILayout.TextField("Albedo Shader Parameter Name", SWBF2Import.DEFAULT_MATERIAL_ALBEDO);
+        //SWBF2Import.DEFAULT_MATERIAL_NORMAL = EditorGUILayout.TextField("Normal Map Shader Parameter Name", SWBF2Import.DEFAULT_MATERIAL_NORMAL);
+        //SWBF2Import.NORMAL_MAP_SUFFIX = EditorGUILayout.TextField("Normal Map suffix", SWBF2Import.NORMAL_MAP_SUFFIX);
+
+        EditorGUILayout.Space();
+        EditorGUILayout.LabelField("Asset Creation", EditorStyles.boldLabel);
+        SWBF2Import.CREATE_ASSETS = EditorGUILayout.Toggle("Create Assets", SWBF2Import.CREATE_ASSETS);
+        //if (!SWBF2Import.CREATE_ASSETS)
+        //{
+        //    SWBF2Import.CREATE_MESH_ASSETS = false;
+        //}
+        GUI.enabled = SWBF2Import.CREATE_ASSETS;
+        //SWBF2Import.CREATE_MESH_ASSETS = EditorGUILayout.Toggle("Create individual Mesh Assets", SWBF2Import.CREATE_MESH_ASSETS);
+        SWBF2Import.MODELS_FOLDER = EditorGUILayout.TextField("Models Folder", SWBF2Import.MODELS_FOLDER);
+        if (SWBF2Import.MODELS_FOLDER[0] != '/')
+            SWBF2Import.MODELS_FOLDER = '/' + SWBF2Import.MODELS_FOLDER;
+
+        GUI.enabled = true;
+        SWBF2Import.IMPORT_TEXTURES = EditorGUILayout.Toggle("Import Textures", SWBF2Import.IMPORT_TEXTURES);
+        GUI.enabled = SWBF2Import.IMPORT_TEXTURES;
+        SWBF2Import.TEXTURES_FOLDER = EditorGUILayout.TextField("Textures Folder", SWBF2Import.TEXTURES_FOLDER);
+        GUI.enabled = true;
+        if (SWBF2Import.TEXTURES_FOLDER[0] != '/')
+            SWBF2Import.TEXTURES_FOLDER = '/' + SWBF2Import.TEXTURES_FOLDER;
 
         SWBF2Import.LEGAL_TYPES = legalTypesFinal.ToArray();
         SWBF2Import.LEGAL_MODELS = legalModelsFinal.ToArray();
