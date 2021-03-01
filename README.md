@@ -1,7 +1,10 @@
 # Unity SWBF2 Import
 
 Import Maps from the Star Wars Battlefront II (2005) Mod Tools into Unity 2019.3<br />
-This Importer is currently based on the [LibSWBF2-CSharp](https://github.com/Ben1138/LibSWBF2-CSharp) Library.<br />
+<br/>
+Check out WHSynders [NEW VERSION](https://github.com/WHSnyder/SWBF2-.lvl-Extraction-Tools-for-Unity3D), which imports directly from the game (LVL) files instead of the Mod Tools.<br/>
+<br/>
+This Importer is based on the far outdated [LibSWBF2-CSharp](https://github.com/Ben1138/LibSWBF2-CSharp) Library.<br />
 <br />
 Join us on [Discord](https://discord.com/invite/nNUapcU)<br />
 <br />
